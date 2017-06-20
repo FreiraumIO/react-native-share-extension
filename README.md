@@ -7,6 +7,12 @@ This is a helper module which brings react native as an engine to drive share ex
     <img src ="https://raw.githubusercontent.com/alinz/react-native-share-extension/master/assets/android-demo.gif" />
 </p>
 
+## How this fork is different
+
+- let all intent types trough
+- generate file uri from content uri
+- support multiple share values
+
 # Installation
 
 installation should be very easy by just installing it from npm.
