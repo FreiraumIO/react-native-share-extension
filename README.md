@@ -12,6 +12,7 @@ This is a helper module which brings react native as an engine to drive share ex
 - let all intent types trough
 - generate file uri from content uri
 - support multiple share values
+- supports listening for new data (based on onNewIntent hook)
 
 # Installation
 
