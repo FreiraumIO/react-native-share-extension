@@ -8,17 +8,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:alinz/react-native-share-extension.git"
+    "url": "git@github.com:BigPun86/react-native-share-extension.git"
   },
   "keywords": ["react-component", "react-native", "share-extension"],
   "author": {
-    "name": "Ali Najafizadeh",
-    "email": "a.najafizadeh@gmail.com",
-    "url": "http://github.com/alinz"
+    "name": "Adel Bruno Grimm",
+    "email": "adel.grimm@icloud.com",
+    "url": "http://github.com/BigPun86"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/alinz/react-native-share-extension"
+    "url": "https://github.com/BigPun86/react-native-share-extension"
   },
-  "homepage": "https://github.com/alinz/react-native-share-extension"
+  "homepage": "https://github.com/BigPun86/react-native-share-extension"
 }
