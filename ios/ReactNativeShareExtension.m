@@ -8,7 +8,6 @@
 
 NSExtensionContext* extensionContext;
 
-
 @implementation ReactNativeShareExtension {
     NSTimer *autoTimer;
     NSString* type;
@@ -20,8 +19,6 @@ NSExtensionContext* extensionContext;
 - (UIView*) shareView:(NSString*)url {
     return nil;
 }
-
-
 
 RCT_EXPORT_MODULE();
 
@@ -52,8 +49,6 @@ RCT_EXPORT_METHOD(close) {
     [extensionContext completeRequestReturningItems:nil
                                   completionHandler:nil];
 }
-
-
 
 RCT_REMAP_METHOD(data,
                  resolver:(RCTPromiseResolveBlock)resolve
@@ -136,9 +131,7 @@ RCT_REMAP_METHOD(data,
                     
                 }
             }];
-            
-           
-            
+                   
         } else if (textProvider) {
             [textProvider loadItemForTypeIdentifier:TEXT_IDENTIFIER options:nil completionHandler:^(id<NSSecureCoding> item, NSError *error) {
                 NSString *text = (NSString *)item;

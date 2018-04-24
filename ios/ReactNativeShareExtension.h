@@ -6,7 +6,4 @@
 
 - (void)load:(void(^)(NSString *value, UIImage* image, NSString* contentType,  NSException *exception))callback ;
 
- 
-
-
 @end

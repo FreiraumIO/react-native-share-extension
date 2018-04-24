@@ -40,11 +40,88 @@ the setup requires a little bit more work. I will try to describe as detail as p
     <img src ="https://raw.githubusercontent.com/alinz/react-native-share-extension/master/assets/ios_step_03.png" />
 </p>
 
-- delete both `ShareViewController.h` and `ShareViewController.m`. make sure to click on `Move to Trash` button during deletion.
+- replace the code of `ShareViewController.h` and `ShareViewController.m` with follwoing: 
 
-<p align="center">
-    <img src ="https://raw.githubusercontent.com/alinz/react-native-share-extension/master/assets/ios_step_04.png" />
-</p>
+###ShareViewController.h =>
+
+```objc
+
+#import <Foundation/Foundation.h>
+
+// Need config this two value bellows:
+
+static NSString *const KApp_Scheme = @"main://";
+
+static NSString *const KApp_Group_ID = @"your.group.id";
+
+@interface ShareMaster : NSObject
+
++ (NSString*)store:(NSString*) urlStr   name:(NSString*) name;
+
++ (NSString*)storeData:(NSData*) data   name:(NSString*) name ;
+
++ (NSURL*)combineURL:(NSString*)name;
+
+@end
+```
+
+###ShareViewController.m =>
+
+```objc
+
+#import "ShareMaster.h"
+
+@implementation ShareMaster
+
++ (NSString*)store:(NSString*) urlStr   name:(NSString*) name {
+  NSLog(@"will storeData read from ->%@",urlStr);
+  NSFileManager *fileManager = [NSFileManager defaultManager];
+   
+  NSData* data = [fileManager contentsAtPath:urlStr];
+  return [ShareMaster storeData:data name:name];
+}
+
++ (NSString*)storeData:(NSData*) data   name:(NSString*) name {
+  NSURL* fileURL = [ShareMaster combineURL:name ];
+  NSLog(@"will storeData->%@",fileURL);
+  NSError* error;
+  BOOL result =[data writeToURL:fileURL options:NSDataWritingAtomic error:&error];
+  //  [data writeToURL:fileURL atomically:true];
+  NSLog(@"storeData->%@",result ? @"success": @"failed");
+  return [fileURL absoluteString];
+}
+
++ (NSURL*)combineURL:(NSString*)name{
+  NSURL *groupURL = [ShareMaster getWorkDir];
+  NSURL *fileURL = [groupURL URLByAppendingPathComponent:name];
+  return fileURL;
+}
+
++ (NSURL*)getWorkDir{
+  NSURL *groupURL = [[NSFileManager defaultManager] containerURLForSecurityApplicationGroupIdentifier:KApp_Group_ID];
+  NSURL* result = [groupURL URLByAppendingPathComponent:@"user_share"];
+  [ShareMaster createDirAtSharedContainerPath:[result path]];
+  return result;
+}
+
++(void)createDirAtSharedContainerPath:(NSString*)dirPath
+{
+  BOOL isdir;
+  NSError *error = nil;
+  
+  NSFileManager *mgr = [[NSFileManager alloc]init];
+
+  if (![mgr fileExistsAtPath:dirPath isDirectory:&isdir]) { //create a dir only that does not exists
+    if (![mgr createDirectoryAtPath:dirPath withIntermediateDirectories:YES attributes:nil error:&error]) {
+      NSLog(@"error while creating dir: %@", error.localizedDescription);
+    } else {
+      NSLog(@"dir was created....");
+    }
+  }
+}
+
+@end
+```
 
 - create new file under your share extension group. in my case it was `MyShareEx`
 
@@ -62,7 +139,7 @@ the setup requires a little bit more work. I will try to describe as detail as p
     <img src ="https://raw.githubusercontent.com/alinz/react-native-share-extension/master/assets/ios_step_07.png" />
 </p>
 
-- since we deleted `ShareViewController.m`, we need to tell the storyboard of your share extension where the view needs to be loaded. So click on `MainInterface.storyboard` and replace the class field from `ShareViewController` to whatever you chose above (in my case `MyShareEx`)
+- update the storyboard of your share extension where the view needs to be loaded. So click on `MainInterface.storyboard` and replace the class field from `ShareViewController` to whatever you chose above (in my case `MyShareEx`)
 
 <p align="center">
     <img src ="https://raw.githubusercontent.com/alinz/react-native-share-extension/master/assets/ios_step_08.png" />
@@ -138,8 +215,40 @@ RCT_EXPORT_MODULE();
   return rootView;
 }
 
+
+- (void)loadImageBackToMainApp{
+  //@step gather the image and then save to shared directonry
+  //  then pass the saved file URL to Main App with URL scheme
+  [self load:^(NSString *value, UIImage *image, NSString *contentType, NSException *exception) {
+    
+    NSString* keyName = @"myimage.png";
+    NSData* pictureData = UIImagePNGRepresentation(image);
+    NSString* imageURL = [ShareMaster storeData:pictureData name:keyName];
+    //[self performSelector:@selector(lauchHostApp:) withObject:keyName afterDelay:0.1];
+    [self lauchHostApp:imageURL];
+    [self.extensionContext completeRequestReturningItems:@[] completionHandler:nil];
+  }];
+  
+}
+
+- (void)lauchHostApp:(NSString*)keyName{
+  NSString* url = [NSString stringWithFormat:@"%@?imageUrl=%@", KApp_Scheme,keyName];
+  NSURL *destinationURL = [NSURL URLWithString: url];
+  
+  // Get "UIApplication" class name through ASCII Character codes.
+  NSString *className = [[NSString alloc] initWithData:[NSData dataWithBytes:(unsigned char []){0x55, 0x49, 0x41, 0x70, 0x70, 0x6C, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6F, 0x6E} length:13] encoding:NSASCIIStringEncoding];
+  if (NSClassFromString(className)) {
+    id object = [NSClassFromString(className) performSelector:@selector(sharedApplication)];
+    [object performSelector:@selector(openURL:) withObject:destinationURL];
+  }
+}
+
 @end
 ```
+
+###Enable App Groups for Image Sharing
+
+- final configuration for ios is to enable app groups for both targets, Main-App & ShareExtension. As soon as you have successfully created the app groups for both targets then u have to update the app group placehaolder within ShareViewController.h file. From now on you can share images into your app on a ios device
 
 - now try to build the project. it should build successfully.
 
@@ -335,13 +444,13 @@ and in `values/styles.xml`
 > if you need to add more packages to your share extension do not overrides
 `getPackages`. instead override `getMorePackages` method under `ShareExActivity`.
 
-# Share Component
+# Share Component for Android
 
 so both share extension and main application are using the same code base, or same main.jsbundle file. So the trick to separate Share and Main App is registering 2 different Component entries with `AppRegistry.registerComponent`.
 
-so in both iOS and android share extension we are telling react to load the extension component (in my case `MyShareEx`) from js.
+as we have treated the ios part a bit differnet to the android part, please do the next steps only for android. so in the android share extension we are telling react to load the extension component (in my case `MyShareEx`) from js.
 
-so in `index.ios.js` and `index.android.js` we are writing the same code as
+so in `index.android.js` write following code
 
 ```js
 //index.android.js
@@ -361,18 +470,14 @@ import React from 'react'
 import { AppRegistry } from 'react-native'
 
 import App from './app.ios'
-import Share from './share.ios'
-
 AppRegistry.registerComponent('Sample1', () => App)
-AppRegistry.registerComponent('MyShareEx', () => Share) // TODO: Replace MyShareEx with my extension name
 ```
 
-so the `app.ios` and `app.android.js` refers to main app and `share.ios.js` and `share.android.js` refers to share extension.
+so the `app.android.js` refers to main app and `share.android.js` refers to share extension.
 
 # Share Extension APIs
 
 - `data()` is a function that returns a promise. Once the promise is resolved, you get two values, `type` and `value`.
-
 
 ```js
 import ShareExtension from 'react-native-share-extension'
