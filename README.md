@@ -252,6 +252,22 @@ RCT_EXPORT_MODULE();
 
 - now try to build the project. it should build successfully.
 
+##Add deep linking so host app will be opened
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>share</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>main</string>
+			</array>
+		</dict>
+		<dict/>
+	</array>
+
 ## Android
 
 - edit `android/settings.gradle` file and add the following
