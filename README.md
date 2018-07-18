@@ -1,3 +1,7 @@
+This Module was originally forked from https://github.com/alinz/react-native-share-extension and was modified in order to share multiple images with your host app by using AppGroups
+
+The Documentation is not 100% up to date! PR are anytime welcome :)
+
 # React Native Share Extension
 
 This is a helper module which brings react native as an engine to drive share extension for your app.
@@ -12,7 +16,7 @@ This is a helper module which brings react native as an engine to drive share ex
 installation should be very easy by just installing it from npm.
 
 ```js
-npm install react-native-share-extension --save
+yarn add @freiraum/react-native-share-extension
 ```
 
 # Setup
@@ -151,7 +155,7 @@ static NSString *const KApp_Group_ID = @"your.group.id";
     <img src ="https://raw.githubusercontent.com/alinz/react-native-share-extension/master/assets/ios_step_09.png" />
 </p>
 
-- select `node_modules` > `react-native-share-extension` > `ios` > `ReactNativeShareExtension.xcodeproj`
+- select `node_modules` > `@freiraum/react-native-share-extension` > `ios` > `ReactNativeShareExtension.xcodeproj`
 
 <p align="center">
     <img src ="https://raw.githubusercontent.com/alinz/react-native-share-extension/master/assets/ios_step_10.png" />
@@ -163,7 +167,7 @@ static NSString *const KApp_Group_ID = @"your.group.id";
     <img src ="https://raw.githubusercontent.com/alinz/react-native-share-extension/master/assets/ios_step_11.png" />
 </p>
 
-- add the new path `$(SRCROOT)/../node_modules/react-native-share-extension/ios` with `recursive` selected.
+- add the new path `$(SRCROOT)/../node_modules/@freiraum/react-native-share-extension/ios` with `recursive` selected.
 
 <p align="center">
     <img src ="https://raw.githubusercontent.com/alinz/react-native-share-extension/master/assets/ios_step_12.png" />
@@ -275,7 +279,7 @@ RCT_EXPORT_MODULE();
 ```
 include ':app', ':react-native-share-extension'
 
-project(':react-native-share-extension').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-share-extension/android')
+project(':react-native-share-extension').projectDir = new File(rootProject.projectDir, '../node_modules/@freiraum/react-native-share-extension/android')
 ```
 
 - edit `android/app/build.gradle` and add the following line before react section in dependency
@@ -496,7 +500,7 @@ so the `app.android.js` refers to main app and `share.android.js` refers to shar
 - `data()` is a function that returns a promise. Once the promise is resolved, you get two values, `type` and `value`.
 
 ```js
-import ShareExtension from 'react-native-share-extension'
+import ShareExtension from '@freiraum/react-native-share-extension'
 ...
 
 const { type, value } = await ShareExtension.data()
@@ -534,6 +538,8 @@ For the time being, this package only handles sharing of urls specifically from 
   <dict>
     <key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
     <integer>1</integer>
+    <key>NSExtensionActivationSupportsImageWithMaxCount</key>
+    <integer>10</integer> // Share up to 10 images with your host app!
   </dict>
 </dict>
 ```
