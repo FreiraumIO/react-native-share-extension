@@ -1,5 +1,5 @@
 {
-  "name": "react-native-share-extension",
+  "name": "@freiraum/react-native-share-extension",
   "version": "1.3.3",
   "description": "share extension using react-native for both ios and android",
   "main": "lib/index.js",
@@ -8,21 +8,20 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:BigPun86/react-native-share-extension.git"
+    "url": "git+ssh://git@github.com/FreiraumIO/react-native-share-extension.git"
   },
   "keywords": [
     "react-component",
     "react-native",
     "share-extension"
   ],
-  "author": {
-    "name": "Adel Bruno Grimm",
-    "email": "adel.grimm@icloud.com",
-    "url": "http://github.com/BigPun86"
-  },
+  "author": "Adel Bruno Grimm <adel.grimm@icloud.com> (http://github.com/BigPun86)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/BigPun86/react-native-share-extension"
+    "url": "https://github.com/FreiraumIO/react-native-share-extension"
   },
-  "homepage": "https://github.com/BigPun86/react-native-share-extension"
+  "homepage": "https://github.com/FreiraumIO/react-native-share-extension",
+  "directories": {
+    "example": "examples"
+  }
 }
