@@ -1,6 +1,6 @@
 {
   "name": "@freiraum/react-native-share-extension",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "share extension using react-native for both ios and android",
   "main": "lib/index.js",
   "scripts": {
