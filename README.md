@@ -44,12 +44,11 @@ the setup requires a little bit more work. I will try to describe as detail as p
     <img src ="https://raw.githubusercontent.com/alinz/react-native-share-extension/master/assets/ios_step_03.png" />
 </p>
 
-- replace the code of `ShareViewController.h` and `ShareViewController.m` with follwoing: 
+- replace the code of `ShareViewController.h` and `ShareViewController.m` with follwoing:
 
 ###ShareViewController.h =>
 
 ```objc
-
 #import <Foundation/Foundation.h>
 
 // Need config this two value bellows:
@@ -72,7 +71,6 @@ static NSString *const KApp_Group_ID = @"your.group.id";
 ###ShareViewController.m =>
 
 ```objc
-
 #import "ShareMaster.h"
 
 @implementation ShareMaster
@@ -80,7 +78,7 @@ static NSString *const KApp_Group_ID = @"your.group.id";
 + (NSString*)store:(NSString*) urlStr   name:(NSString*) name {
   NSLog(@"will storeData read from ->%@",urlStr);
   NSFileManager *fileManager = [NSFileManager defaultManager];
-   
+
   NSData* data = [fileManager contentsAtPath:urlStr];
   return [ShareMaster storeData:data name:name];
 }
@@ -112,7 +110,7 @@ static NSString *const KApp_Group_ID = @"your.group.id";
 {
   BOOL isdir;
   NSError *error = nil;
-  
+
   NSFileManager *mgr = [[NSFileManager alloc]init];
 
   if (![mgr fileExistsAtPath:dirPath isDirectory:&isdir]) { //create a dir only that does not exists
@@ -224,7 +222,7 @@ RCT_EXPORT_MODULE();
   //@step gather the image and then save to shared directonry
   //  then pass the saved file URL to Main App with URL scheme
   [self load:^(NSString *value, UIImage *image, NSString *contentType, NSException *exception) {
-    
+
     NSString* keyName = @"myimage.png";
     NSData* pictureData = UIImagePNGRepresentation(image);
     NSString* imageURL = [ShareMaster storeData:pictureData name:keyName];
@@ -232,13 +230,13 @@ RCT_EXPORT_MODULE();
     [self lauchHostApp:imageURL];
     [self.extensionContext completeRequestReturningItems:@[] completionHandler:nil];
   }];
-  
+
 }
 
 - (void)lauchHostApp:(NSString*)keyName{
   NSString* url = [NSString stringWithFormat:@"%@?imageUrl=%@", KApp_Scheme,keyName];
   NSURL *destinationURL = [NSURL URLWithString: url];
-  
+
   // Get "UIApplication" class name through ASCII Character codes.
   NSString *className = [[NSString alloc] initWithData:[NSData dataWithBytes:(unsigned char []){0x55, 0x49, 0x41, 0x70, 0x70, 0x6C, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6F, 0x6E} length:13] encoding:NSASCIIStringEncoding];
   if (NSClassFromString(className)) {
@@ -257,20 +255,20 @@ RCT_EXPORT_MODULE();
 - now try to build the project. it should build successfully.
 
 ##Add deep linking so host app will be opened
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLName</key>
-			<string>share</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>main</string>
-			</array>
-		</dict>
-		<dict/>
-	</array>
+<key>CFBundleURLTypes</key>
+<array>
+<dict>
+<key>CFBundleTypeRole</key>
+<string>Editor</string>
+<key>CFBundleURLName</key>
+<string>share</string>
+<key>CFBundleURLSchemes</key>
+<array>
+<string>main</string>
+</array>
+</dict>
+<dict/>
+</array>
 
 ## Android
 
@@ -361,6 +359,7 @@ public class ShareApplication extends Application implements ReactApplication {
 ```
 
 - MainApplication should look like this
+
 ```java
 // your package you defined in ShareActivity
 package com.sample1;
@@ -417,6 +416,7 @@ public class MainApplication extends Application implements ReactApplication {
     android:theme="@style/Theme.Share.Transparent" >
    <intent-filter>
      <action android:name="android.intent.action.SEND" />
+     <action android:name="android.intent.action.SEND_MULTIPLE" />
      <category android:name="android.intent.category.DEFAULT" />
     //  for sharing links include
      <data android:mimeType="text/plain" />
@@ -462,7 +462,7 @@ and in `values/styles.xml`
 - now you should be able to compile the code without error.
 
 > if you need to add more packages to your share extension do not overrides
-`getPackages`. instead override `getMorePackages` method under `ShareExActivity`.
+> `getPackages`. instead override `getMorePackages` method under `ShareExActivity`.
 
 # Share Component for Android
 
@@ -474,23 +474,23 @@ so in `index.android.js` write following code
 
 ```js
 //index.android.js
-import React from 'react'
-import { AppRegistry } from 'react-native'
+import React from "react";
+import { AppRegistry } from "react-native";
 
-import App from './app.android'
-import Share from './share.android'
+import App from "./app.android";
+import Share from "./share.android";
 
-AppRegistry.registerComponent('Sample1', () => App)
-AppRegistry.registerComponent('MyShareEx', () => Share) // TODO: Replace MyShareEx with my extension name
+AppRegistry.registerComponent("Sample1", () => App);
+AppRegistry.registerComponent("MyShareEx", () => Share); // TODO: Replace MyShareEx with my extension name
 ```
 
 ```js
 //index.ios.js
-import React from 'react'
-import { AppRegistry } from 'react-native'
+import React from "react";
+import { AppRegistry } from "react-native";
 
-import App from './app.ios'
-AppRegistry.registerComponent('Sample1', () => App)
+import App from "./app.ios";
+AppRegistry.registerComponent("Sample1", () => App);
 ```
 
 so the `app.android.js` refers to main app and `share.android.js` refers to share extension.

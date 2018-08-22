@@ -2,8 +2,6 @@ package com.alinz.parkerdan.shareextension;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.DocumentsContract;
@@ -11,11 +9,9 @@ import android.provider.MediaStore;
 import android.content.ContentUris;
 import android.os.Environment;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Random;
+import android.os.ParcelFileDescriptor;
+import java.io.*;
+import java.nio.channels.FileChannel;
 
 public class RealPathUtil {
     public static String getRealPathFromURI(final Context context, final Uri uri) {
@@ -70,7 +66,15 @@ public class RealPathUtil {
         else if ("content".equalsIgnoreCase(uri.getScheme())) {
 
             // Return the remote address
-            return saveFile(context, uri).getPath();
+            if (isGooglePhotosUri(uri))
+                return uri.getLastPathSegment();
+
+            String path = getDataColumn(context, uri, null, null);
+
+            if (path != null)
+                return path;
+            // Try save to tmp file, and return tmp file path
+            return getPathFromSavingTempFile(context, uri);
         }
         // File
         else if ("file".equalsIgnoreCase(uri.getScheme())) {
@@ -80,43 +84,23 @@ public class RealPathUtil {
         return null;
     }
 
-    private static Uri saveFile(final Context context, Uri uri) {
-        Bitmap bitmap = null;
+    public static String getPathFromSavingTempFile(Context context, final Uri uri) {
+        File tmpFile;
         try {
-            InputStream inputStream = context.getContentResolver().openInputStream(uri);
-            bitmap = BitmapFactory.decodeStream(inputStream);
-            String sdCardPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                    .toString();
-            File myDir = new File(sdCardPath);
-            if (!myDir.exists()) {
-                myDir.mkdir();
-            }
+            String fileName = uri.getLastPathSegment();
+            tmpFile = File.createTempFile("tmp", fileName, context.getCacheDir());
 
-            Random generator = new Random();
-            int n = 10000;
-            n = generator.nextInt(n);
-            String fname = "Image-" + n + ".jpg";
-            File file = new File(myDir, fname);
-            if (file.exists())
-                file.delete();
-            try {
-                FileOutputStream out = new FileOutputStream(file);
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
-                out.flush();
-                out.close();
+            ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(uri, "r");
 
-                Uri newURi = Uri.fromFile(file);
-
-                return newURi;
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-        } catch (IOException e) {
-
+            FileChannel src = new FileInputStream(pfd.getFileDescriptor()).getChannel();
+            FileChannel dst = new FileOutputStream(tmpFile).getChannel();
+            dst.transferFrom(src, 0, src.size());
+            src.close();
+            dst.close();
+        } catch (IOException ex) {
+            return null;
         }
-
-        return null;
+        return tmpFile.getAbsolutePath();
     }
 
     /**
