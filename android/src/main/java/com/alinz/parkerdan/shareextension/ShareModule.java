@@ -16,7 +16,6 @@ import android.graphics.Bitmap;
 import java.io.InputStream;
 import java.util.ArrayList;
 import android.util.Log;
-
 import android.support.v4.content.FileProvider;
 
 public class ShareModule extends ReactContextBaseJavaModule {
@@ -77,11 +76,12 @@ public class ShareModule extends ReactContextBaseJavaModule {
       }
 
       if (Intent.ACTION_VIEW.equals(action) && type.endsWith("pdf")) {
+        // Log.v("SHARE-PATH", "ACTION_VIEW PDF");
+
         // Get the file from the intent object
         Uri file_uri = intent.getData();
         if (file_uri != null) {
-          filepath = file_uri.getPath();
-          String resolvedPath = filepath.replace("document/raw:/", "");
+          String resolvedPath = RealPathUtil.getRealPath(currentActivity, file_uri);
           pdfs.pushString("file://" + resolvedPath);
         } else {
           filepath = "No file";
@@ -90,56 +90,52 @@ public class ShareModule extends ReactContextBaseJavaModule {
 
       // WHEN WE SHARE SINGLE PDF WITH HOST APP
       else if (Intent.ACTION_SEND.equals(action) && type.endsWith("pdf")) {
+        // Log.v("SHARE-PATH", "ACTION_SEND PDF");
         Uri uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
-        filepath = uri.getPath();
-        String resolvedPath = filepath.replace("document/raw:/", "");
+        String resolvedPath = RealPathUtil.getRealPath(currentActivity, uri);
         pdfs.pushString("file://" + resolvedPath);
       }
 
       // WHEN WE SHARE MULTIPLE PDFS WITH HOST APP
       else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type.endsWith("pdf")) {
+        // Log.v("SHARE-PATH", "ACTION_SEND_MULTIPLE PDF");
         ArrayList<Uri> uris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
         for (Uri uri : uris) {
-          filepath = uri.getPath();
-          String resolvedPath = filepath.replace("document/raw:/", "");
+          String resolvedPath = RealPathUtil.getRealPath(currentActivity, uri);
           pdfs.pushString("file://" + resolvedPath);
         }
       }
 
       // WHEN WE SHARE SINGLE TEXT WITH HOST APP
       else if (Intent.ACTION_SEND.equals(action) && "text/plain".equals(type)) {
+        // Log.v("SHARE-PATH", "ACTION_SEND TEXT");
         text = intent.getStringExtra(Intent.EXTRA_TEXT);
       }
 
       // WHEN WE SHARE SINGLE IMAGE WITH HOST APP
       else if (Intent.ACTION_SEND.equals(action) && type.startsWith("image")) {
+        // Log.v("SHARE-PATH", "ACTION_SEND IMAGE");
         Uri uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
-        filepath = uri.getPath();
-        String resolvedPath = filepath.replace("document/raw:/", "");
+        String resolvedPath = RealPathUtil.getRealPath(currentActivity, uri);
         images.pushString("file://" + resolvedPath);
       }
 
       // WHEN WE SHARE MULTIPLE IMAGES WITH HOST APP
       else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type.startsWith("image")) {
+        // Log.v("SHARE-PATH", "ACTION_SEND_MULTIPLE IMAGE");
         ArrayList<Uri> uris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
         for (Uri uri : uris) {
-          filepath = uri.getPath();
-          String resolvedPath = filepath.replace("document/raw:/", "");
+          String resolvedPath = RealPathUtil.getRealPath(currentActivity, uri);
           images.pushString("file://" + resolvedPath);
         }
       }
 
       // WHEN WE SHARE MULTIPLE IMAGES AND PDFS MIXED!! WITH HOST APP
       else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type.startsWith("*/*")) {
-
-        // Log.v("SHARE_MULTIPLE", "actiontype: " + type);
-        // Log.v("SHARE_MULTIPLE", "actiontype image: " + type.startsWith("image"));
-        // Log.v("SHARE_MULTIPLE", "actiontype pdf: " + type.startsWith("pdf"));
-
+        // Log.v("SHARE-PATH", "ACTION_SEND_MULTIPLE MIXED");
         ArrayList<Uri> uris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
         for (Uri uri : uris) {
-          filepath = uri.getPath();
-          String resolvedPath = filepath.replace("document/raw:/", "");
+          String resolvedPath = RealPathUtil.getRealPath(currentActivity, uri);
           mixedFiles.pushString("file://" + resolvedPath);
         }
       }
