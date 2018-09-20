@@ -422,6 +422,8 @@ public class MainApplication extends Application implements ReactApplication {
      <data android:mimeType="text/plain" />
     //  for sharing photos include
     <data android:mimeType="image/*" />
+    <data android:mimeType="audio/*" />
+    <data android:mimeType="video/*" />
     <data android:mimeType="application/pdf" /> // => in order to share PDFS
    </intent-filter>
 </activity>

@@ -54,6 +54,8 @@ public class ShareModule extends ReactContextBaseJavaModule {
   public WritableMap processIntent() {
     WritableMap map = Arguments.createMap();
     WritableArray images = Arguments.createArray();
+    WritableArray videos = Arguments.createArray();
+    WritableArray audios = Arguments.createArray();
     WritableArray mixedFiles = Arguments.createArray();
     WritableArray pdfs = Arguments.createArray();
 
@@ -130,7 +132,43 @@ public class ShareModule extends ReactContextBaseJavaModule {
         }
       }
 
-      // WHEN WE SHARE MULTIPLE IMAGES AND PDFS MIXED!! WITH HOST APP
+      // WHEN WE SHARE SINGLE VIDEO WITH HOST APP
+      else if (Intent.ACTION_SEND.equals(action) && type.startsWith("video")) {
+        // Log.v("SHARE-PATH", "ACTION_SEND VIDEO");
+        Uri uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+        String resolvedPath = RealPathUtil.getRealPath(currentActivity, uri);
+        videos.pushString("file://" + resolvedPath);
+      }
+
+      // WHEN WE SHARE MULTIPLE VIDEOS WITH HOST APP
+      else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type.startsWith("video")) {
+        // Log.v("SHARE-PATH", "ACTION_SEND_MULTIPLE VIDEO");
+        ArrayList<Uri> uris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+        for (Uri uri : uris) {
+          String resolvedPath = RealPathUtil.getRealPath(currentActivity, uri);
+          videos.pushString("file://" + resolvedPath);
+        }
+      }
+
+      // WHEN WE SHARE SINGLE AUDIO WITH HOST APP
+      else if (Intent.ACTION_SEND.equals(action) && type.startsWith("audio")) {
+        // Log.v("SHARE-PATH", "ACTION_SEND AUDIO");
+        Uri uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+        String resolvedPath = RealPathUtil.getRealPath(currentActivity, uri);
+        audios.pushString("file://" + resolvedPath);
+      }
+
+      // WHEN WE SHARE MULTIPLE AUDIOS WITH HOST APP
+      else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type.startsWith("audio")) {
+        // Log.v("SHARE-PATH", "ACTION_SEND_MULTIPLE AUDIO");
+        ArrayList<Uri> uris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+        for (Uri uri : uris) {
+          String resolvedPath = RealPathUtil.getRealPath(currentActivity, uri);
+          audios.pushString("file://" + resolvedPath);
+        }
+      }
+
+      // WHEN WE SHARE MULTIPLE IMAGES AND VIDEOS AND AUDIOS AND PDFS MIXED!! WITH HOST APP
       else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type.startsWith("*/*")) {
         // Log.v("SHARE-PATH", "ACTION_SEND_MULTIPLE MIXED");
         ArrayList<Uri> uris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
@@ -144,6 +182,8 @@ public class ShareModule extends ReactContextBaseJavaModule {
     map.putString("type", type);
     map.putString("text", text);
     map.putArray("images", images);
+    map.putArray("videos", videos);
+    map.putArray("audios", audios);
     map.putArray("pdfs", pdfs);
     map.putArray("mixedFiles", mixedFiles);
 
