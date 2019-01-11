@@ -3,15 +3,22 @@ package com.alinz.parkerdan.shareextension;
 import android.annotation.SuppressLint;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.ContentResolver;
 import android.content.CursorLoader;
 import android.database.Cursor;
+import android.webkit.MimeTypeMap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.text.TextUtils;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.graphics.BitmapFactory;
 import java.io.*;
+import java.util.HashMap;
+import java.util.UUID;
 
 public class RealPathUtil {
 
@@ -134,10 +141,16 @@ public class RealPathUtil {
         }
         // MediaStore (and general)
         else if ("content".equalsIgnoreCase(uri.getScheme())) {
+            if (isFileProviderUri(context, uri))
+                return getFileProviderPath(context, uri);
 
             // Return the remote address
-            if (isGooglePhotosUri(uri))
+            if (isGoogleOldPhotosUri(uri))
                 return uri.getLastPathSegment();
+
+            // copy from uri. context.getContentResolver().openInputStream(uri);
+            if (isGoogleNewPhotosUri(uri) || isMMSFile(uri)) 
+                return copyFile(context, uri);
 
             return getDataColumn(context, uri, null, null);
         }
@@ -162,14 +175,26 @@ public class RealPathUtil {
     public static String getDataColumn(Context context, Uri uri, String selection, String[] selectionArgs) {
 
         Cursor cursor = null;
-        final String column = "_data";
-        final String[] projection = { column };
+        final String[] projection = {
+            MediaStore.MediaColumns.DATA,
+            MediaStore.MediaColumns.DISPLAY_NAME,
+        };
 
         try {
-            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, null);
+            ContentResolver contentResolver = context.getContentResolver();
+            cursor = contentResolver.query(uri, projection, selection, selectionArgs, null);
             if (cursor != null && cursor.moveToFirst()) {
-                final int index = cursor.getColumnIndexOrThrow(column);
-                return cursor.getString(index);
+                // Fall back to writing to file if _data column does not exist
+                final int index = cursor.getColumnIndex(MediaStore.MediaColumns.DATA);
+                String path = index > -1 ? cursor.getString(index) : null;
+                if (path != null) {
+                    return cursor.getString(index);
+                } else {
+                    final int indexDisplayName = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME);
+                    String fileName = cursor.getString(indexDisplayName);
+                    File fileWritten = writeToFile(context, fileName, uri);
+                    return fileWritten.getAbsolutePath();
+                }
             }
         } finally {
             if (cursor != null)
@@ -218,6 +243,32 @@ public class RealPathUtil {
     // return null;
     // }
 
+    public static boolean checkIsImage(Context context, Uri uri) {
+        ContentResolver contentResolver = context.getContentResolver();
+        String type = contentResolver.getType(uri);
+        if (type != null) {
+            return type.startsWith("image/");
+        } else {
+            // try to decode as image (bounds only)
+            InputStream inputStream = null;
+            try {
+                inputStream = contentResolver.openInputStream(uri);
+                if (inputStream != null) {
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inJustDecodeBounds = true;
+                    BitmapFactory.decodeStream(inputStream, null, options);
+                    return options.outWidth > 0 && options.outHeight > 0;
+                }
+            } catch (IOException e) {
+                // ignore
+            } finally {
+//                FileUtils.closeQuietly(inputStream);
+            }
+        }
+        // default outcome if image not confirmed
+        return false;
+    }
+
     /**
      * @param uri The Uri to check.
      * @return Whether the Uri authority is ExternalStorageProvider.
@@ -246,8 +297,116 @@ public class RealPathUtil {
      * @param uri The Uri to check.
      * @return Whether the Uri authority is Google Photos.
      */
-    public static boolean isGooglePhotosUri(Uri uri) {
+    public static boolean isGoogleOldPhotosUri(Uri uri) {
         return "com.google.android.apps.photos.content".equals(uri.getAuthority());
     }
 
+    public static boolean isGoogleNewPhotosUri(Uri uri) {
+        return "com.google.android.apps.photos.contentprovider".equals(uri.getAuthority());
+    }
+
+    public static boolean isMMSFile(Uri uri) {
+        return "com.android.mms.file".equals(uri.getAuthority());
+    }
+
+    /**
+	 * @param context The Application context
+	 * @param uri The Uri is checked by functions
+	 * @return Whether the Uri authority is FileProvider
+	 */
+	public static boolean isFileProviderUri(@NonNull final Context context,
+	                                        @NonNull final Uri uri) {
+		final String packageName = context.getPackageName();
+		final String authority = new StringBuilder(packageName).append(".provider").toString();
+		return authority.equals(uri.getAuthority());
+	}
+
+	/**
+	 * @param context The Application context
+	 * @param uri The Uri is checked by functions
+	 * @return File path or null if file is missing
+	 */
+	public static @Nullable String getFileProviderPath(@NonNull final Context context,
+	                                                   @NonNull final Uri uri)
+	{
+		final File appDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+		final File file = new File(appDir, uri.getLastPathSegment());
+		return file.exists() ? file.toString(): null;
+    }
+    
+    private static String copyFile(Context context, Uri uri) {
+        String filePath;
+        InputStream inputStream = null;
+        BufferedOutputStream outStream = null;
+        try {
+            inputStream = context.getContentResolver().openInputStream(uri);
+
+            File extDir = context.getExternalFilesDir(null);
+            if (checkIsImage(context, uri))
+                filePath = extDir.getAbsolutePath() + "/IMG_" + UUID.randomUUID().toString() + ".jpg";
+            else
+                filePath = extDir.getAbsolutePath() + "/VIDEO_" + UUID.randomUUID().toString() + ".mp4";
+            outStream = new BufferedOutputStream(new FileOutputStream
+                    (filePath));
+
+            byte[] buf = new byte[2048];
+            int len;
+            while ((len = inputStream.read(buf)) > 0) {
+                outStream.write(buf, 0, len);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            filePath = "";
+        } finally {
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                if (outStream != null) {
+                    outStream.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return filePath;
+    }
+
+    /**
+     * If an image/video has been selected from a cloud storage, this method
+     * should be call to download the file in the cache folder.
+     *
+     * @param context The context
+     * @param fileName donwloaded file's name
+     * @param uri file's URI
+     * @return file that has been written
+     */
+    private static File writeToFile(Context context, String fileName, Uri uri) {
+        String tmpDir = context.getCacheDir() + "/react-native-share-extension";
+        Boolean created = new File(tmpDir).mkdir();
+        fileName = fileName.substring(fileName.lastIndexOf('/') + 1);
+        File path = new File(tmpDir);
+        File file = new File(path, fileName);
+        try {
+            FileOutputStream oos = new FileOutputStream(file);
+            byte[] buf = new byte[8192];
+            InputStream is = context.getContentResolver().openInputStream(uri);
+            int c = 0;
+            while ((c = is.read(buf, 0, buf.length)) > 0) {
+                oos.write(buf, 0, c);
+                oos.flush();
+            }
+            oos.close();
+            is.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return file;
+    }
 }
