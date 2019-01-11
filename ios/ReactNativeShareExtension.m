@@ -4,15 +4,14 @@
 
 #define URL_IDENTIFIER @"public.url"
 #define IMAGE_IDENTIFIER @"public.image"
+#define MOVIE_IDENTIFIER @"public.movie"
 #define TEXT_IDENTIFIER (NSString *)kUTTypePlainText
 
 NSExtensionContext* extensionContext;
 
 @implementation ReactNativeShareExtension {
     NSTimer *autoTimer;
-    NSString* type;
     NSString* value;
-    UIImage* image;
    
     NSUInteger _taskTotal;
     NSUInteger _task;
@@ -50,14 +49,12 @@ RCT_EXPORT_MODULE();
     _taskItems = [NSMutableArray array];
     
     
-    [self extractDataFromContext: extensionContext withCallback:^(NSString* val,UIImage* image, NSString* contentType, NSException* err) {
-        NSLog(@"callback-> val:%@, contentType:%@, err:%@",val,contentType,err);
+    [self extractDataFromContext: extensionContext withCallback:^(NSString* val, NSException* err) {
         _task = _task + 1;
-        if (nil != image){
-            NSDictionary* item = NSDictionaryOfVariableBindings(val,image,contentType);
-            [_taskItems addObject:item];
-        }
-        NSLog(@"_taskTotal=%d, _task=%d",_taskTotal, _task);
+
+        NSDictionary* item = NSDictionaryOfVariableBindings(val);
+        [_taskItems addObject:item];
+
         if ( _taskTotal == _task){
             callback(_taskItems,nil);
         }
@@ -76,30 +73,28 @@ RCT_REMAP_METHOD(data,
                  resolver:(RCTPromiseResolveBlock)resolve
                  rejecter:(RCTPromiseRejectBlock)reject)
 {
+    NSExtensionItem *inputItem = [extensionContext.inputItems firstObject];
+    NSLog(@"loads , extensionContext.inputItems:%@",extensionContext.inputItems);
+    NSArray *attachments = inputItem.attachments;
+    _task = 0; _taskTotal = [attachments count];
+    _taskItems = [NSMutableArray array];
 
-    [self extractDataFromContext: extensionContext withCallback:^(NSString* val,UIImage* image, NSString* contentType, NSException* err) {
-        if(err) {
-            reject(@"error", err.description, nil);
-        } else {
-            resolve(@{
-                      @"type": contentType,
-                      @"value": val,
-                      @"image":image
-                      });
+    [self extractDataFromContext: extensionContext withCallback:^(NSString* val, NSException* err) {
+        _task = _task + 1;
+        
+        [_taskItems addObject:val];
             
+        if (_taskTotal == _task){
+            if(err) {
+                reject(@"error", err.description, nil);
+            } else {
+                resolve(@{ @"mixedFiles": _taskItems });
+            }
         }
     }];
 }
 
--(UIImage*)harvestImage:(NSString *)imageURL {
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSData *imgData = [fileManager contentsAtPath:imageURL];
-    UIImage *img = [UIImage imageWithData:imgData];
-    // Process Image..
-    return img;
-}
-
-- (void)extractDataFromContext:(NSExtensionContext *)context withCallback:(void(^)(NSString *value, UIImage* image, NSString* contentType,  NSException *exception))callback {
+- (void)extractDataFromContext:(NSExtensionContext *)context withCallback:(void(^)(NSString *value, NSException *exception))callback {
     NSExtensionItem *item = [context.inputItems firstObject];
     NSArray *attachments = item.attachments;
     [attachments enumerateObjectsUsingBlock:^(NSItemProvider *provider, NSUInteger idx, BOOL *stop) {
@@ -108,84 +103,75 @@ RCT_REMAP_METHOD(data,
      
 }
 
- 
-
-- (void)extractDataFromContextItem: (NSItemProvider *)provider withCallback:(void(^)(NSString *value, UIImage* image, NSString* contentType,  NSException *exception))callback {
+- (void)extractDataFromContextItem: (NSItemProvider *)provider withCallback:(void(^)(NSString *value, NSException *exception))callback {
     @try {
-      //  NSExtensionItem *item = [context.inputItems firstObject];
-     //   NSArray *attachments = item.attachments;
-        
         __block NSItemProvider *urlProvider = nil;
         __block NSItemProvider *imageProvider = nil;
         __block NSItemProvider *textProvider = nil;
-        
-      //  [attachments enumerateObjectsUsingBlock:^(NSItemProvider *provider, NSUInteger idx, BOOL *stop) {
-            if([provider hasItemConformingToTypeIdentifier:URL_IDENTIFIER]) {
-                urlProvider = provider;
-              //  *stop = YES;
-            } else if ([provider hasItemConformingToTypeIdentifier:TEXT_IDENTIFIER]){
-                textProvider = provider;
-               // *stop = YES;
-            } else if ([provider hasItemConformingToTypeIdentifier:IMAGE_IDENTIFIER]){
-                imageProvider = provider;
-              //  *stop = YES;
-            }
-      //  }];
+        __block NSItemProvider *videoProvider = nil;
+
+        if([provider hasItemConformingToTypeIdentifier:URL_IDENTIFIER]) {
+            urlProvider = provider;
+          //  *stop = YES;
+        } else if ([provider hasItemConformingToTypeIdentifier:TEXT_IDENTIFIER]){
+            textProvider = provider;
+           // *stop = YES;
+        } else if ([provider hasItemConformingToTypeIdentifier:IMAGE_IDENTIFIER]){
+            imageProvider = provider;
+          //  *stop = YES;
+        } else if ([provider hasItemConformingToTypeIdentifier:MOVIE_IDENTIFIER]){
+            videoProvider = provider;
+          //  *stop = YES;
+        }
         
         //  Look for an image inside the NSItemProvider
         if (imageProvider){
             if([imageProvider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeImage]){
-                [imageProvider loadItemForTypeIdentifier:(NSString *)kUTTypeImage options:nil completionHandler:^(UIImage *image, NSError *error) {
-                    if(image){
+                [imageProvider loadItemForTypeIdentifier:(NSString *)kUTTypeImage options:nil completionHandler:^(id<NSSecureCoding> item, NSError *error) {
+                    NSURL *url = (NSURL *)item;
+                    if(url){
                         if(callback) {
-                            
-                            callback(@"binary image here", image, @".png", nil);
+                            callback([url absoluteString], nil);
                         }
                     }
                 }];
-                return ;
             }
-            
-        }
-        
-        if(urlProvider) {
+        } else if (videoProvider){
+            if([videoProvider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeMovie]){
+                [videoProvider loadItemForTypeIdentifier:(NSString *)kUTTypeMovie options:nil completionHandler:^(id<NSSecureCoding> item, NSError *error) {
+                    NSURL *url = (NSURL *)item;
+                    if(url){
+                        if(callback) {
+                            callback([url absoluteString], nil);
+                        }
+                    }
+                }];
+            }
+        } else if(urlProvider) {
             [urlProvider loadItemForTypeIdentifier:URL_IDENTIFIER options:nil completionHandler:^(id<NSSecureCoding> item, NSError *error) {
                 NSURL *url = (NSURL *)item;
                 
                 if(callback) {
-                    callback([url absoluteString],nil, @"text/plain", nil);
+                    callback([url absoluteString], nil);
                 }
             }];
-        } else if (imageProvider) {
-            [imageProvider loadItemForTypeIdentifier:IMAGE_IDENTIFIER options:nil completionHandler:^(id<NSSecureCoding> item, NSError *error) {
-                NSURL *url = (NSURL *)item;
-                
-                if(callback) {
-                    NSString* buf = [url absoluteString];
-                    NSString* type = [[[url absoluteString] pathExtension] lowercaseString];
-                    callback(buf, nil, type, nil);
-                    NSLog(@"detected:%@", buf);
-                    
-                }
-            }];
-            
         } else if (textProvider) {
             [textProvider loadItemForTypeIdentifier:TEXT_IDENTIFIER options:nil completionHandler:^(id<NSSecureCoding> item, NSError *error) {
                 NSString *text = (NSString *)item;
                 
                 if(callback) {
-                    callback(text, nil, @"text/plain", nil);
+                    callback(text, nil);
                 }
             }];
         } else {
             if(callback) {
-                callback(nil, nil,nil, [NSException exceptionWithName:@"Error" reason:@"couldn't find provider" userInfo:nil]);
+                callback(nil, [NSException exceptionWithName:@"Error" reason:@"couldn't find provider" userInfo:nil]);
             }
         }
     }
     @catch (NSException *exception) {
         if(callback) {
-            callback(nil,nil, nil, exception);
+            callback(nil, exception);
         }
     }
 }

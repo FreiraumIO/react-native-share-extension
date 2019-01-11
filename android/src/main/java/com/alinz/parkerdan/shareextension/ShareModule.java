@@ -12,11 +12,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 
-import android.graphics.Bitmap;
-import java.io.InputStream;
 import java.util.ArrayList;
-import android.util.Log;
-import android.support.v4.content.FileProvider;
 
 public class ShareModule extends ReactContextBaseJavaModule {
 
@@ -168,8 +164,15 @@ public class ShareModule extends ReactContextBaseJavaModule {
         }
       }
 
-      // WHEN WE SHARE MULTIPLE IMAGES AND VIDEOS AND AUDIOS AND PDFS MIXED!! WITH HOST APP
-      else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type.startsWith("*/*")) {
+      // WHEN WE SHARE SINGLE IMAGE OR PDF MIXED WITH HOST APP
+      else if (Intent.ACTION_SEND.equals(action)) {
+        Uri uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+        String resolvedPath = RealPathUtil.getRealPath(currentActivity, uri);
+        mixedFiles.pushString("file://" + resolvedPath);
+      }
+
+      // WHEN WE SHARE MULTIPLE IMAGES AND PDFS MIXED!! WITH HOST APP
+      else if (Intent.ACTION_SEND_MULTIPLE.equals(action)) {
         // Log.v("SHARE-PATH", "ACTION_SEND_MULTIPLE MIXED");
         ArrayList<Uri> uris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
         for (Uri uri : uris) {
@@ -177,6 +180,15 @@ public class ShareModule extends ReactContextBaseJavaModule {
           mixedFiles.pushString("file://" + resolvedPath);
         }
       }
+
+      else if (Intent.ACTION_VIEW.equals(action)) {
+        Uri file_uri = intent.getData();
+        if (file_uri != null) {
+          String resolvedPath = RealPathUtil.getRealPath(currentActivity, file_uri);
+          mixedFiles.pushString("file://" + resolvedPath);
+        }
+      }
+
     }
 
     map.putString("type", type);
